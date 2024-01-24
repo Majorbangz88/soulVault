@@ -3,13 +3,12 @@ package com.joel.soulVault.services;
 import com.joel.soulVault.data.models.Diary;
 import com.joel.soulVault.data.models.Entry;
 import com.joel.soulVault.data.repositories.DiaryRepository;
-import com.joel.soulVault.dtos.CreateEntryRequest;
-import com.joel.soulVault.dtos.FindEntryResponse;
-import com.joel.soulVault.dtos.LoginRequests;
-import com.joel.soulVault.dtos.RegistrationRequests;
+import com.joel.soulVault.dtos.*;
 import com.joel.soulVault.utils.Mapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 import static com.joel.soulVault.utils.Mapper.map;
 
@@ -23,18 +22,17 @@ public class DiaryServicesImpl implements DiaryServices {
     private EntryServices entryServices;
 
     @Override
-    public void register(RegistrationRequests registrationRequests) {
+    public Diary register(RegistrationRequests registrationRequests) {
         validateUsername(registrationRequests.getUsername());
         Diary diary = new Diary();
-        map(registrationRequests, diary);
+        Mapper.map(registrationRequests, diary);
         diaryRepository.save(diary);
+        return diary;
     }
 
-    private void validateUsername(String username) {
-        for (Diary diary : diaryRepository.findAll()) {
-            if (diary.getUsername().equals(username))
-                throw new IllegalArgumentException("Username already exists");
-        }
+    private void validateUsername(String username){
+        Optional<Diary> optionalDiary = diaryRepository.findByUsername(username);
+        if (optionalDiary.isPresent()) throw new IllegalArgumentException("Username taken!");
     }
 
     @Override
@@ -45,12 +43,10 @@ public class DiaryServicesImpl implements DiaryServices {
 
     @Override
     public Diary findByUsername(String username) {
-//        validateUsername(username);
-        for (Diary diary : diaryRepository.findAll()) {
-            if (diary.getUsername().equals(username))
-                return diary;
-        }
-        return null;
+        Optional<Diary> foundUser = diaryRepository.findByUsername(username);
+        if (foundUser.isPresent())
+            return foundUser.get();
+        throw new IllegalArgumentException("Diary not found");
     }
 
     @Override
@@ -60,46 +56,54 @@ public class DiaryServicesImpl implements DiaryServices {
             diaryRepository.delete(diary);
     }
 
-    @Override
-    public Entry addEntry(CreateEntryRequest entryRequest) {
-        validateUserName(entryRequest.getUsername());
-        map(entryRequest);
-        Entry entry = entryServices.addEntry(entryRequest);
-        return entry;
-    }
+//    @Override
+//    public CreateEntryResponse createEntry(CreateEntryRequest entryRequest) {
+//        CreateEntryResponse response = entryServices.addEntry(entryRequest);
+//        return response;
+//    }
 
     private void validateUserName(String username) {
-        Diary foundDiary = diaryRepository.findByUsername(username);
-        if (foundDiary == null)
+        Optional<Diary> foundDiary = diaryRepository.findByUsername(username);
+        if (foundDiary.isEmpty())
             throw new IllegalArgumentException("Diary not found");
-        if (foundDiary.isLocked())
+        if (foundDiary.get().isLocked())
             throw new IllegalArgumentException("Diary is locked");
     }
 
 
-    @Override
-    public FindEntryResponse findEntry(String username, String title) {
-        Entry entry = entryServices.findEntry(username, title);
-        FindEntryResponse findEntryResponse = new FindEntryResponse();
-        map(findEntryResponse, entry);
-        return findEntryResponse;
-    }
+//    @Override
+//    public FindEntryResponse findEntry(String username, String title) {
+//        Optional<Entry> entry = entryServices.findEntry(username, title);
+//        FindEntryResponse findEntryResponse = new FindEntryResponse();
+//        Mapper.map(findEntryResponse, entry);
+//        return findEntryResponse;
+//    }
 
     @Override
-    public void lock(String username) {
+    public Diary lock(String username) {
         Diary foundDiary = findByUsername(username);
         foundDiary.setLocked(true);
         diaryRepository.save(foundDiary);
+
+        return foundDiary;
     }
 
     @Override
-    public void unlock(LoginRequests loginRequests) {
-        Diary diary = diaryRepository.findByUsername(loginRequests.getUsername());
-        if (diary == null) throw new IllegalArgumentException("Diary not found");
-        if (diary.getPassword().equals(loginRequests.getPassword()))
-            diary.setLocked(false);
+    public Diary unlock(LoginRequests loginRequests) {
+        Optional<Diary> diary = diaryRepository.findByUsername(loginRequests.getUsername());
+        if (diary.isEmpty()) throw new IllegalArgumentException("Diary not found");
+        if (diary.get().getPassword().equals(loginRequests.getPassword()))
+            diary.get().setLocked(false);
         else
             throw new IllegalArgumentException("password incorrect");
-        diaryRepository.save(diary);
+        diaryRepository.save(diary.get());
+
+        return diary.get();
+    }
+
+    @Override
+    public void deleteAll() {
+        diaryRepository.deleteAll();
     }
 }
+
