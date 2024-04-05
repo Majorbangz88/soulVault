@@ -77,6 +77,16 @@ class DiaryServicesTest {
         diaryServices.register(registrationRequests);
         assertEquals(1, diaryServices.count());
 
+        Diary lockedDiary = diaryServices.lock("username");
+        assertTrue(lockedDiary.isLocked());
+
+        LoginRequests loginRequest = new LoginRequests();
+        loginRequest.setUsername("username");
+        loginRequest.setPassword("password");
+        lockedDiary = diaryServices.unlock(loginRequest);
+
+        assertFalse(lockedDiary.isLocked());
+
         CreateEntryResponse response = entryServices.addEntry(createEntry);
 
         assertNotNull(response);

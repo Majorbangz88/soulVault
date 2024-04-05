@@ -12,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping(path = "/DiaryApp")
+@CrossOrigin(origins = "*")
 public class DiaryController {
 
     @Autowired

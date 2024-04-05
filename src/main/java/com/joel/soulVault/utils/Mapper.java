@@ -9,6 +9,7 @@ public class Mapper {
     public static void map(RegistrationRequests registerRequest, Diary diary) {
         diary.setUsername(registerRequest.getUsername());
         diary.setPassword(registerRequest.getPassword());
+        diary.setLocked(true);
     }
 
     public static CreateEntryResponse map(CreateEntryRequest createEntryRequest, Entry entry) {
